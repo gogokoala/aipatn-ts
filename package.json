@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc --outDir dist && node dist/index.js"
+    "start": "tsc --outDir dist && DEBUG=* node dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -27,16 +27,28 @@
     "typescript": "^2.5.3"
   },
   "dependencies": {
+    "@types/axios": "^0.14.0",
+    "@types/config": "0.0.33",
+    "@types/debug": "0.0.30",
     "@types/koa": "^2.0.39",
     "@types/koa-bodyparser": "^3.0.25",
     "@types/koa-router": "^7.0.23",
+    "@types/lodash": "^4.14.79",
     "@types/node": "^8.0.47",
+    "@types/random-seed": "^0.3.2",
+    "@types/uuid": "^3.4.3",
+    "axios": "^0.17.0",
     "body-parser": "^1.18.2",
+    "config": "^1.27.0",
+    "debug": "^3.1.0",
     "koa": "^2.3.0",
     "koa-bodyparser": "^4.2.0",
     "koa-router": "^7.2.1",
+    "lodash": "^4.17.4",
     "mysql": "^2.15.0",
+    "random-seed": "^0.3.0",
     "reflect-metadata": "^0.1.10",
-    "typeorm": "^0.1.1"
+    "typeorm": "^0.1.1",
+    "uuid": "^3.1.0"
   }
 }

@@ -1,0 +1,42 @@
+{
+  "name": "aipatn-server",
+  "version": "1.0.0",
+  "description": "The Server of the aipatn.com Site.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsc --outDir dist && node dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gogokoala/aipatn-ts.git"
+  },
+  "keywords": [
+    "aipatn"
+  ],
+  "author": {
+    "name": "Steps.Ding",
+    "email": "372258@qq.com"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gogokoala/aipatn-ts/issues"
+  },
+  "homepage": "https://github.com/gogokoala/aipatn-ts#readme",
+  "devDependencies": {
+    "typescript": "^2.5.3"
+  },
+  "dependencies": {
+    "@types/koa": "^2.0.39",
+    "@types/koa-bodyparser": "^3.0.25",
+    "@types/koa-router": "^7.0.23",
+    "@types/node": "^8.0.47",
+    "body-parser": "^1.18.2",
+    "koa": "^2.3.0",
+    "koa-bodyparser": "^4.2.0",
+    "koa-router": "^7.2.1",
+    "mysql": "^2.15.0",
+    "reflect-metadata": "^0.1.10",
+    "typeorm": "^0.1.1"
+  }
+}

@@ -4,12 +4,14 @@ import * as uuidv4 from 'uuid/v4'
 import * as config from 'config'
 import http from 'axios'
 import { md5 } from '../lib/md5'
-import * as Debug from 'debug'
 import * as jwt from 'jsonwebtoken'
 import * as moment from 'moment'
 import { TokenExpiredError } from 'jsonwebtoken'
+import { redisStore } from '../redis/redisstore'
 
+import * as Debug from 'debug'
 const debug = Debug('aipatn.vcode')
+
 const seed = uuidv4()
 const rand = create(seed)
 const mobileReg = /^1[0-9]{10}$/ 
@@ -29,7 +31,7 @@ export async function getVerificationCode (ctx: Context, next: Function) {
     const query = req.query;
     // 验证手机号
     if (!query || !query.phone || !mobileReg.test(query.phone)) {
-        throw new Error('请求参数错误')
+        throw new Error('无效的请求')
     }
     const phone = query.phone
     
@@ -78,7 +80,9 @@ export async function getVerificationCode (ctx: Context, next: Function) {
     res = res.data
     debug('sms send result: %O', res)
 
-    
-    
-    ctx.state.data = { }
+    // 保存至Session, 验证码有效10m
+    const expireAt = moment().add('m', 10).valueOf()
+    let sid = await redisStore.set({ phone, verificationCode: { code: vcode, expireAt } })
+
+    ctx.state.data = { status: 0, message: "ok", sid }
 }

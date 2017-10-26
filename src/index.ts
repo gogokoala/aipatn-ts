@@ -6,6 +6,7 @@ import { response } from './middleware/response'
 import { router } from './routes'
 import * as config from 'config'
 import * as Debug from 'debug'
+import * as jwtKoa from 'koa-jwt'
 
 const debug = Debug('aipatn.server')
 
@@ -18,6 +19,13 @@ const port = config.get('port')
 
     // create koa app
     const app = new Koa()
+
+    // Middleware below this line is only reached if JWT token is valid
+    // unless the URL starts with '/api/login, /api/register'
+    const jwtSecret = config.get<string>('jwtSecret')
+    app.use(jwtKoa({ secret: jwtSecret }).unless({
+        path: [/^\/login/, /^\/register/, /^\/vcode/]
+    }))
 
     // 使用响应处理中间件
     app.use(response)

@@ -1,13 +1,17 @@
+/**
+ * 验证码获取
+ * TODO - 如何防止恶意刷验证码
+ */
 import { Context } from 'koa'
 import { create } from 'random-seed'
 import * as uuidv4 from 'uuid/v4'
 import * as config from 'config'
-import http from 'axios'
-import { md5 } from '../lib/md5'
+import { sha1 } from '../lib/sha1'
 import * as jwt from 'jsonwebtoken'
 import * as moment from 'moment'
 import { TokenExpiredError } from 'jsonwebtoken'
 import { redisStore } from '../redis/redisstore'
+import { smsService } from '../lib/sms'
 
 import * as Debug from 'debug'
 const debug = Debug('aipatn.vcode')
@@ -15,11 +19,6 @@ const debug = Debug('aipatn.vcode')
 const seed = uuidv4()
 const rand = create(seed)
 const mobileReg = /^1[0-9]{10}$/ 
-
-const url = config.get<string>('sms.url')
-const user = config.get<string>('sms.user')
-const subcode = config.get<string>('sms.subcode')
-const password = md5(config.get<string>('sms.pass'))
 
 const jwtSecret = config.get<string>('jwtSecret')
 
@@ -60,29 +59,31 @@ export async function getVerificationCode (ctx: Context, next: Function) {
         })
     }
 */
+
+    // 维护Session
+    const issueAt = moment().valueOf()
+    const expireAt = moment().add(10, 'm').valueOf()
+    let sid = (req.query && req.query.sid) || (req.body && req.body.sid) || req.headers['x-session-id']
+    debug('sid: %o', sid)
+    if (sid) {
+        let session = await redisStore.get(sid)
+        debug('session: %o', session)
+        if (session) {
+            session.phone = phone
+            session.verificationCode = { code: vcode, issueAt, expireAt }
+            sid = await redisStore.set(session, sid)
+        } else {
+            session = { phone, verificationCode: { code: vcode, issueAt, expireAt } }
+            sid = await redisStore.set(session)
+        }
+    } else {
+        const session = { phone, verificationCode: { code: vcode, issueAt, expireAt } }
+        sid = await redisStore.set(session)
+    }
+
     // 发送短信
     const message = `您的验证码是${vcode}`
-    let res = await http({
-        url: url,
-        method: 'GET',
-        params: {
-            sdk: user,
-            code: password,
-            pwdtype: 'md5',
-            phones: phone,
-            msg: message,
-            encode: 'UTF-8',
-            resulttype: 'xml',
-            subcode: subcode
-        }
-    })
-
-    res = res.data
-    debug('sms send result: %O', res)
-
-    // 保存至Session, 验证码有效10m
-    const expireAt = moment().add('m', 10).valueOf()
-    let sid = await redisStore.set({ phone, verificationCode: { code: vcode, expireAt } })
-
+    await smsService.send(phone, message)
+    
     ctx.state.data = { status: 0, message: "ok", sid }
 }

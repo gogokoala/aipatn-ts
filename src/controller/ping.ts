@@ -1,7 +1,7 @@
 import { Context } from 'koa'
 
 /**
- * Loads all posts from the database.
+ * Middleware ping
  */
 export async function ping (ctx: Context, next: Function) {
     await next()

@@ -25,13 +25,14 @@ export class User {
     @Column({
         type: 'varchar',
         length: 128,
-        collation: 'utf8mb4_unicode_ci'
+        collation: 'utf8mb4_unicode_ci',
+        default: ''
     })
     email: string
 
     @Column({
-        default: false,
-        collation: 'utf8mb4_unicode_ci'
+        collation: 'utf8mb4_unicode_ci',
+        default: false
     })
     emailVerified: boolean
 
@@ -45,7 +46,8 @@ export class User {
     @Column({
         type: 'varchar',
         length: 256,
-        collation: 'utf8mb4_unicode_ci'
+        collation: 'utf8mb4_unicode_ci',
+        default: ''
     })
     jwt: string
 
@@ -66,7 +68,8 @@ export class User {
     @Column({
         type: 'varchar',
         length: 16,
-        collation: 'utf8mb4_unicode_ci'
+        collation: 'utf8mb4_unicode_ci',
+        default: 'active'
     })
     state: string
 }

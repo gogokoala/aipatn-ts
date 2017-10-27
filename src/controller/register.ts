@@ -10,18 +10,21 @@ import { User } from "../entity/User";
 import * as moment from 'moment'
 
 /**
- * Loads all posts from the database.
+ * Middleware register
  */
 export async function register (ctx: Context, next: Function) {
     const req = ctx.request;
     const user = req.body;
-
     debug('req.body: %o', req.body)
-    if (!user || !user.phone || !user.vcode || !user.sid) {
+    
+    let sid = (req.query && req.query.sid) || (req.body && req.body.sid) || req.headers['x-session-id']
+    debug('sid: %o', sid)
+
+    if (!user || !user.phone || !user.vcode || !sid) {
         throw new Error('无效的请求')
     }
 
-    const session = await redisStore.get(user.sid)
+    let session = await redisStore.get(sid)
     debug('session: %o', session)
 
     if (!session) {
@@ -45,16 +48,25 @@ export async function register (ctx: Context, next: Function) {
     }
     
     // 生成注册用户信息
+    const now = moment().format('YYYY-MM-DD HH:mm:ss')
     vo = new User()
     vo.username = user.phone
+    vo.password = sid.slice(-6)
     vo.mobilePhone = user.phone
-    const now = moment().toString()
+    vo.email = ''
+    vo.emailVerified = false
     vo.createTime = now
     vo.lastLoginTime = now
     vo.state = 'active'
     
     // 创建用户
     vo = await usrRepository.save(vo)
+
+    // TODO - 更新日志
+
+    // 更新Session
+    session.verificationCode = null
+    sid = await redisStore.set(session, sid)
     
-    ctx.state.data = { status: 0, message: "恭喜您！注册成功" }
+    ctx.state.data = { status: 0, message: "恭喜您！注册成功", sid }
 }

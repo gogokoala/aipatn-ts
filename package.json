@@ -27,7 +27,6 @@
     "typescript": "^2.5.3"
   },
   "dependencies": {
-    "@types/axios": "^0.14.0",
     "@types/config": "0.0.33",
     "@types/debug": "0.0.30",
     "@types/ioredis": "0.0.27",

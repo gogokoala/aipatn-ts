@@ -33,6 +33,10 @@ export async function register (ctx: Context, next: Function) {
     if (user.phone != session.phone) {
         throw new Error('手机号错误')
     }
+
+    if (!session.verificationCode || !session.verificationCode.code || !session.verificationCode.expireAt) {
+        throw new Error('请获取验证码')
+    }
     if (user.vcode != session.verificationCode.code) {
         throw new Error('验证码不正确')
     }
@@ -65,7 +69,7 @@ export async function register (ctx: Context, next: Function) {
     // TODO - 更新日志
 
     // 更新Session
-    session.verificationCode = null
+    session.verificationCode = {}
     sid = await redisStore.set(session, sid)
     
     ctx.state.data = { status: 0, message: "恭喜您！注册成功", sid }

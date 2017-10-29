@@ -7,9 +7,7 @@ import { create } from 'random-seed'
 import * as uuidv4 from 'uuid/v4'
 import * as config from 'config'
 import { sha1 } from '../lib/sha1'
-import * as jwt from 'jsonwebtoken'
 import * as moment from 'moment'
-import { TokenExpiredError } from 'jsonwebtoken'
 import { redisStore } from '../redis/redisstore'
 import { smsService } from '../lib/sms'
 
@@ -82,8 +80,10 @@ export async function getVerificationCode (ctx: Context, next: Function) {
     }
 
     // 发送短信
-    const message = `您的验证码是${vcode}`
-    await smsService.send(phone, message)
-    
+    if (!debug.enabled) {
+        const message = `您的验证码是${vcode}`
+        await smsService.send(phone, message)
+    }
+
     ctx.state.data = { status: 0, message: "ok", sid }
 }

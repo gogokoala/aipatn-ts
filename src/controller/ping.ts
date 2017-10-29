@@ -1,10 +1,12 @@
 import { Context } from 'koa'
 
+import * as Debug from 'debug'
+const debug = Debug('aipatn.vcode')
+
 /**
  * Middleware ping
  */
 export async function ping (ctx: Context, next: Function) {
-    await next()
 
-    ctx.body = 'pong'
+    ctx.state.data = { status: 0, message: "pong" }
 }

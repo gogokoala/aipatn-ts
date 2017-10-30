@@ -5,7 +5,7 @@ import * as Debug from 'debug'
 const debug = Debug('aipatn.register')
 
 import { getManager } from "typeorm";
-import { User } from "../entity/User";
+import { User } from "../entity/user";
 
 import * as moment from 'moment'
 

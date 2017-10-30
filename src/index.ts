@@ -7,6 +7,7 @@ import { router } from './routes'
 import * as config from 'config'
 import * as Debug from 'debug'
 import * as jwtKoa from 'koa-jwt'
+import { oauth2 } from './controller/cnipr/auth'
 
 const debug = Debug('aipatn.server')
 
@@ -17,6 +18,13 @@ const port = config.get('port')
 // note that its not active database connection
 // TypeORM creates you connection pull to uses connections from pull on your requests
 createConnection().then(async connection => {
+
+    await oauth2.updateAccessToken()
+
+    // 间隔15m检查Cnipr AccessToken一次
+    setInterval(async () => {
+        await oauth2.updateAccessToken()
+    } , 15 * 60 * 1000)
 
     // create koa app
     const app = new Koa()

@@ -72,7 +72,7 @@ export async function login (ctx: Context, next: Function) {
     }
     
     if (!jwtToken) {
-        // jwt授权
+        // jwt授权, 有效期2天
         const issuedAt = moment().valueOf()
         const expireAt = moment().add('d', 2).valueOf()
         const jwtToken = await jwt.sign({ 

@@ -25,7 +25,7 @@ class OAuth2Config {
     }
 }
 
-export class OAuth2Response {
+class OAuth2Response {
     status: number
     message: string
     expires_in: number
@@ -44,34 +44,62 @@ class OAuth2Instance {
         this.csfrState = this.options.clientId
     }
     
+    /**
+     * 
+     * @param clientId 获取OAuth2 Access Token信息
+     */
     async getOAuth2Info(clientId: string) {
-        const usrRepository = getManager().getRepository(OAuth2)
-        let vo = await usrRepository.findOne({ clientId })
+        const oauth2Repository = getManager().getRepository(OAuth2)
+        let vo = await oauth2Repository.findOne({ clientId })
         if (vo) {
-            this.oauth2 = vo
+            return vo
+        } else {
+            const now = moment().format('YYYY-MM-DD HH:mm:ss')
+            vo = new OAuth2()
+            vo.clientId = clientId
+            vo.accessToken = ''
+            vo.expiresIn = 0
+            vo.createTime = now
+            vo.lastRefreshTime = now
+
+            return await oauth2Repository.save(vo)
         }
     }
 
     /**
      * 检查Cnipr Access Token是否有效
      */
-    checkAccessToken() {
+    async updateAccessToken() {
         if (!this.oauth2) {
-            return false
+            this.oauth2 = await this.getOAuth2Info(this.options.clientId)
         }
 
         const token = this.oauth2
-
-        //  access_token的过期时长，单位ms,缺省24小时 
-        const expires = token.expiresIn ? token.expiresIn * 1000 : 86400 * 1000
-
-        if (moment(token.lastRefreshTime, 'YYYY-MM-DD HH:mm:ss').valueOf() + expires < moment().valueOf()) {
-            debug('access_token expired.')
-            return true
-        } else {
-            debug('access_token is ok.')
-            return false
+        debug('access_token = %o', token)
+        if (token.accessToken && token.expiresIn > 0) {
+            // 校验access_token有效性
+            //  access_token的过期时长，单位ms,缺省24小时 
+            const expires = token.expiresIn ? token.expiresIn * 1000 : 86400 * 1000
+            // access_token有效期少于1天时，即自动更新
+            const remaining = expires - (moment().valueOf() - moment(token.lastRefreshTime, 'YYYY-MM-DD HH:mm:ss').valueOf()) - 86400 * 1000
+            if (remaining <= 0) {
+                // 过期
+                debug('access_token expired. remaining = %d', remaining)
+            } else {
+                // 正常
+                debug('access_token is ok. remaining = %d', remaining)
+                return
+            }
         }
+
+        const authResp = await this.refreshAccessToken()
+
+        token.accessToken = authResp.access_token
+        token.expiresIn = authResp.expires_in
+        token.lastRefreshTime = moment().format('YYYY-MM-DD HH:mm:ss')
+
+        const oauth2Repository = getManager().getRepository(OAuth2)
+        this.oauth2 = await oauth2Repository.save(token)
     }
 
     /**
@@ -114,7 +142,13 @@ class OAuth2Instance {
         }
     }
 
-
+    getApiParams() {
+        return { 
+            clientId: this.options.clientId, 
+            openId: this.options.openId, 
+            accessToken: this.oauth2.accessToken
+        }
+    }
 }
 
 

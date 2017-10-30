@@ -1,9 +1,9 @@
-import {Entity, Column} from "typeorm"
+import {Entity, PrimaryColumn, Column} from "typeorm"
 
 @Entity()
 export class OAuth2 {
 
-    @Column({
+    @PrimaryColumn({
         type: 'varchar',
         length: 128,
         collation: 'utf8mb4_unicode_ci'

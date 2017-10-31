@@ -17,6 +17,8 @@ export async function response (ctx: Context, next: Function) {
             code: ctx.state.code !== undefined ? ctx.state.code : 0,
             data: ctx.state.data !== undefined ? ctx.state.data : {}
         }
+
+        debug('respose: %o', ctx.body)
     } catch (e) {
         // catch 住全局的错误信息
         debug('Catch Error: %o', e)

@@ -1,13 +1,15 @@
 import { Context } from 'koa'
-import { redisStore } from '../redis/redisstore'
-
+import { redisStore } from '../middleware/redisstore'
 import * as Debug from 'debug'
-const debug = Debug('aipatn.register')
-
 import { getManager } from "typeorm";
 import { User } from "../entity/user";
-
 import * as moment from 'moment'
+import * as jwt from 'jsonwebtoken'
+import * as config from 'config'
+
+const debug = Debug('aipatn.register')
+const jwtSecret = config.get<string>('jwtSecret')
+
 
 /**
  * Middleware register
@@ -17,20 +19,12 @@ export async function register (ctx: Context, next: Function) {
     const user = req.body;
     debug('req.body: %o', req.body)
     
-    let sid = (req.query && req.query.sid) || (req.body && req.body.sid) || req.headers['x-session-id']
-    debug('sid: %o', sid)
-
-    if (!user || !user.phone || !user.vcode || !sid) {
+    if (!user || !user.phone || !user.vcode) {
         throw new Error('无效的请求')
     }
 
-    let session = await redisStore.get(sid)
-    debug('session: %o', session)
-
-    if (!session) {
-        throw new Error('验证码无效')
-    }
-    if (user.phone != session.phone) {
+    let session = ctx.state.session
+    if (!session.user || !session.user.name || user.phone != session.user.name) {
         throw new Error('手机号错误')
     }
 
@@ -55,22 +49,22 @@ export async function register (ctx: Context, next: Function) {
     const now = moment().format('YYYY-MM-DD HH:mm:ss')
     vo = new User()
     vo.username = user.phone
-    vo.password = sid.slice(-6)
+    vo.password = '000000'
     vo.mobilePhone = user.phone
     vo.email = ''
     vo.emailVerified = false
     vo.createTime = now
     vo.lastLoginTime = now
     vo.state = 'active'
-    
+
     // 创建用户
     vo = await usrRepository.save(vo)
 
     // TODO - 更新日志
 
-    // 更新Session
-    session.verificationCode = {}
-    sid = await redisStore.set(session, sid)
-    
-    ctx.state.data = { status: 0, message: "恭喜您！注册成功", sid }
+    session.verificationCode = null
+    session.user.logged = true
+    ctx.state.session = session
+
+    ctx.state.data = { status: 0, message: "恭喜您！注册成功" }
 }

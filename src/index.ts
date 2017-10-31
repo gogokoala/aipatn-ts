@@ -3,6 +3,7 @@ import { createConnection } from "typeorm"
 import * as Koa from 'koa'
 import { bodyParser } from './middleware/bodyparser'
 import { response } from './middleware/response'
+import { session } from './middleware/session'
 import { router } from './routes'
 import * as config from 'config'
 import * as Debug from 'debug'
@@ -33,13 +34,17 @@ createConnection().then(async connection => {
     // unless the URL starts with '/api/login, /api/register'
     const jwtSecret = config.get<string>('jwtSecret')
     app.use(jwtKoa({ secret: jwtSecret }).unless({
-        path: [/^\/login/, /^\/register/, /^\/vcode/, /^\/ping/]
+        path: [/^\/public/]
     }))
 
     // 使用响应处理中间件
     app.use(response)
+
     // 解析请求体
     app.use(bodyParser())    
+
+    // Session处理
+    app.use(session())
 
     // 
     app.use(router.routes())

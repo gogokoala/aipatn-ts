@@ -1,5 +1,5 @@
 import { Context } from 'koa'
-import { redisStore } from '../redis/redisstore'
+import { redisStore } from '../middleware/redisstore'
 import * as moment from 'moment'
 import * as jwt from 'jsonwebtoken'
 import * as config from 'config'
@@ -20,31 +20,23 @@ export async function login (ctx: Context, next: Function) {
     const user = req.body;
     debug('req.body: %o', req.body)
     
-    let sid = (req.query && req.query.sid) || (req.body && req.body.sid) || req.headers['x-session-id']
-    debug('sid: %o', sid)
-
-    if (!user || !user.phone || !user.vcode || !sid) {
+    if (!user || !user.phone || !user.vcode) {
         throw new Error('无效的请求')
     }
-
-    let session = await redisStore.get(sid)
-    debug('session: %o', session)
-
-    if (!session) {
-        throw new Error('无效的请求')
-    }
-    if (user.phone != session.phone) {
+    let session = ctx.state.session
+    if (!session.user || !session.user.name || user.phone != session.user.name) {
         throw new Error('手机号错误')
     }
-
-    if (!session.verificationCode || !session.verificationCode.code || !session.verificationCode.expireAt) {
-        throw new Error('请获取验证码')
-    }
-    if (user.vcode != session.verificationCode.code) {
-        throw new Error('验证码不正确')
-    }
-    if (moment().valueOf() >= session.verificationCode.expireAt) {
-        throw new Error('验证码已过期')
+    if (!session.user.logged) {
+        if (!session.verificationCode || !session.verificationCode.code || !session.verificationCode.expireAt) {
+            throw new Error('请获取验证码')
+        }
+        if (user.vcode != session.verificationCode.code) {
+            throw new Error('验证码不正确')
+        }
+        if (moment().valueOf() >= session.verificationCode.expireAt) {
+            throw new Error('验证码已过期')
+        }
     }
 
     // 验证用户
@@ -60,7 +52,12 @@ export async function login (ctx: Context, next: Function) {
     }
 
     // jwt
-    let jwtToken = vo.jwt
+    let jwtToken
+    if (session.user.jwt) {
+        jwtToken = session.user.jwt
+    } else {
+        jwtToken = vo.jwt
+    }
     if (jwtToken) {
         // 校验jwt
         try {
@@ -82,6 +79,7 @@ export async function login (ctx: Context, next: Function) {
         }, jwtSecret)
     }
     vo.jwt = jwtToken
+    session.user.jwt = jwtToken
 
     // 更新用户信息
     const now = moment().format('YYYY-MM-DD HH:mm:ss')
@@ -91,10 +89,8 @@ export async function login (ctx: Context, next: Function) {
 
     // 更新Session
     session.verificationCode = null
-    session.access_token = vo.jwt
-    sid = await redisStore.set(session, sid)
 
     // TODO - 更新日志
     
-    ctx.state.data = { status: 0, message: "登录成功", sid, access_token: jwtToken }
+    ctx.state.data = { status: 0, message: "登录成功", jwt: jwtToken }
 }

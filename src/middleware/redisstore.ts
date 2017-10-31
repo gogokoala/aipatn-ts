@@ -1,3 +1,4 @@
+import { Context } from 'koa'
 import * as Redis from 'ioredis'
 import { randomBytes } from 'crypto'
 import * as uuidv4 from 'uuid/v4'
@@ -23,7 +24,7 @@ class RedisStore {
      * 读取Session值
      * @param sid Session ID
      */
-    async get(sid: string) {
+    async get(sid: string, ctx: Context) {
         let data = await this.client.get(`SESSION:${sid}`)
         return JSON.parse(data)
     }
@@ -32,9 +33,9 @@ class RedisStore {
      * 设置Session
      * @param session Session值
      * @param sid Session ID
-     * @param maxAge 最大存在时间(ms)
+     * @param maxAge 最大存在时间(ms),默认30分钟
      */
-    async set(session: any, sid: string =  this.getID(), maxAge: number = 1800000) {
+    async set(session: any, sid: string =  this.getID(), maxAge: number = 1800000, ) {
         try {
               // Use redis set EX to automatically drop expired sessions
               await this.client.set(`SESSION:${sid}`, JSON.stringify(session), 'EX', maxAge / 1000)
@@ -49,7 +50,7 @@ class RedisStore {
      * 移除指定sid的Session
      * @param sid Session ID
      */
-    async remove(sid: string) {
+    async destroy(sid: string, ctx: Context) {
         return await this.client.del(`SESSION:${sid}`);
     }
 }

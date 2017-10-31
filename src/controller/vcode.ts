@@ -8,7 +8,7 @@ import * as uuidv4 from 'uuid/v4'
 import * as config from 'config'
 import { sha1 } from '../lib/sha1'
 import * as moment from 'moment'
-import { redisStore } from '../redis/redisstore'
+import { redisStore } from '../middleware/redisstore'
 import { smsService } from '../lib/sms'
 
 import * as Debug from 'debug'
@@ -59,25 +59,16 @@ export async function getVerificationCode (ctx: Context, next: Function) {
 */
 
     // 维护Session
-    const issueAt = moment().valueOf()
+//    const issueAt = moment().valueOf()
     const expireAt = moment().add(10, 'm').valueOf()
-    let sid = (req.query && req.query.sid) || (req.body && req.body.sid) || req.headers['x-session-id']
-    debug('sid: %o', sid)
-    if (sid) {
-        let session = await redisStore.get(sid)
-        debug('session: %o', session)
-        if (session) {
-            session.phone = phone
-            session.verificationCode = { code: vcode, issueAt, expireAt }
-            sid = await redisStore.set(session, sid)
-        } else {
-            session = { phone, verificationCode: { code: vcode, issueAt, expireAt } }
-            sid = await redisStore.set(session)
-        }
+    let session = ctx.state.session
+    if (session.user) {
+        session.user.name = phone
     } else {
-        const session = { phone, verificationCode: { code: vcode, issueAt, expireAt } }
-        sid = await redisStore.set(session)
+        session.user = { name: phone }
     }
+    session.verificationCode = { code: vcode, expireAt }
+    ctx.state.session = session
 
     // 发送短信
     if (!debug.enabled) {
@@ -85,5 +76,5 @@ export async function getVerificationCode (ctx: Context, next: Function) {
         await smsService.send(phone, message)
     }
 
-    ctx.state.data = { status: 0, message: "ok", sid }
+    ctx.state.data = { status: 0, message: "ok" }
 }
